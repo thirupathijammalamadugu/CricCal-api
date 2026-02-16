@@ -1,0 +1,40 @@
+public class TeamsController : ICarterModule
+{
+    public void AddRoutes(IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/v1/teams")
+            .WithTags("Teams");
+
+        group.MapPost("/", CreateTeam)
+            .WithName("CreateTeam")
+            .Produces<Team>(StatusCodes.Status201Created)
+            .RequireAuthorization("WritePolicy");
+
+        group.MapGet("/", GetAllTeams)
+            .WithName("GetAllTeams")
+            .Produces<IEnumerable<Team>>(StatusCodes.Status200OK)
+            .RequireAuthorization("ReadPolicy");
+
+        group.MapGet("/{id}", GetTeamById)
+            .WithName("GetTeamById")
+            .Produces<Team>(StatusCodes.Status200OK)
+            .RequireAuthorization("ReadPolicy");
+    }
+
+    private static async Task<IResult> CreateTeam(TeamRequest request, ITeamService teamService)
+    {
+        var teamId = await teamService.CreateTeamAsync(request);
+        return Results.Created($"/api/v1/teams/{teamId}", new { Id = teamId });
+    }
+
+    private static async Task<IResult> GetAllTeams(ITeamService teamService, ClaimsPrincipal user)
+    {
+        var teams = await teamService.GetAllTeamsAsync(user);
+        return Results.Ok(teams);
+    }
+
+    private static IResult GetTeamById(int id)
+    {
+        return Results.Ok(new Team());
+    }
+}

@@ -1,20 +1,34 @@
 using Carter;
-using Account.API.Data;
-using Account.API.Services;
-using Account.API.Services.Interfaces;
-using Account.API.Repositories;
-using Account.API.Repositories.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.EntityFrameworkCore;
+using Competition.API.Modules.Tournments;
+using Competition.API.Modules.Teams;
+using Competition.API.Modules.Squads;
+using Criccal.BuildingBlocks.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Add services to the container.
 builder.Services.AddCarter();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(Program));
+
+// Register application services
+builder.Services.AddScoped<ITournamentRepository, TournamentRepository>();
+builder.Services.AddScoped<ITournamentService, TournamentService>();
+builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<ISquadRepository, SquadRepository>();
+builder.Services.AddScoped<ISquadService, SquadService>();
+
+// Add DbContext
+builder.Services.AddDbContext<CompetitionDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -28,7 +42,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
             ValidAudience = builder.Configuration["JwtSettings:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"] ?? ""))
         };
     });
 
@@ -41,32 +55,26 @@ builder.Services.AddAuthorization(options =>
         policy.RequireClaim("permission", "write"));
 });
 
-// Register application services
-builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// Add DbContext
-builder.Services.AddDbContext<AccountDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
 var app = builder.Build();
 
 // Apply migrations on startup
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<AccountDbContext>();
+    var context = scope.ServiceProvider.GetRequiredService<CompetitionDbContext>();
     context.Database.Migrate();
 }
 
-// Configure the HTTP request pipeline
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseMiddleware<Criccal.BuildingBlocks.Middleware.GlobalExceptionMiddleware>();
+
 app.UseHttpsRedirection();
+
+// Add global exception handling
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Add authentication and authorization middleware
 app.UseAuthentication();

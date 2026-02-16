@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Competition.API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/src/Services/Competition/Competition.API/bin/Debug/net8.0/Competition.API.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/Services/Competition/Competition.API",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ConnectionStrings__DefaultConnection": "Server=localhost,1433;Database=CricCalDb;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=true;",
+                "Jwt__Key": "your-super-secret-jwt-key-that-is-at-least-32-characters-long",
+                "Jwt__Issuer": "CricCal",
+                "Jwt__Audience": "CricCal-Users"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        }
+    ]
+}

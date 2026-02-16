@@ -1,0 +1,13 @@
+.git
+.gitignore
+.vs
+.vscode
+bin
+obj
+*.log
+*.user
+.DS_Store
+node_modules
+coverage
+dist
+build

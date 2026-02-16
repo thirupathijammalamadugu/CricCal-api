@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: criccal-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "#@Swamy#@"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - criccal-network
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 10s bash -c '</dev/tcp/localhost/1433' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Account API Service
+  account-api:
+    build:
+      context: .
+      dockerfile: src/Services/Account/Account.API/Dockerfile
+    container_name: criccal-account-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5134
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CricCalDb;User Id=sa;Password=#@Swamy#@;TrustServerCertificate=true;"
+    ports:
+      - "5134:5134"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - criccal-network
+    volumes:
+      - ./src/Services/Account/Account.API:/app/src:ro
+
+  # Competition API Service
+  competition-api:
+    build:
+      context: .
+      dockerfile: src/Services/Competition/Competition.API/Dockerfile
+    container_name: criccal-competition-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5135
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CricCalDb;User Id=sa;Password=#@Swamy#@;TrustServerCertificate=true;"
+    ports:
+      - "5135:5135"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - criccal-network
+
+volumes:
+  sqlserver_data:
+    driver: local
+
+networks:
+  criccal-network:
+    driver: bridge
